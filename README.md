@@ -11,8 +11,13 @@ In this project, you will build a real-time clickstream analytics pipeline using
 
 Pyspark structured streaming: Micro-batch by default (100ms+ typically), or experimental continuous mode
 
-```
+```bash
+# create topic
 kafka kafka-topics --create --topic clickstream-events --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 
+# create topic
 kafka kafka-topics --create --topic clickstream-analytics --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+
+# read events in a topic
+docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic clickstream-events --from-beginning
 ```
