@@ -41,7 +41,10 @@ services:
         condition: service_healthy
     
   spark-master:
-    image: apache/spark:3.5.9
+    build:
+      context: .
+      dockerfile: spark.Dockerfile
+    image: apache-spark:3.5.9
     container_name: spark-master
     hostname: spark-master
     command: >
@@ -50,11 +53,9 @@ services:
     ports:
       - "7077:7077"
       - "8080:8080"
-    volumes:
-      - ./data:/data
 
   spark-worker-1:
-    image: apache/spark:3.5.9
+    image: apache-spark:3.5.9
     container_name: spark-worker-1
     depends_on:
       - spark-master
@@ -64,11 +65,9 @@ services:
       spark://spark-master:7077
     ports:
       - "8081:8081"
-    volumes:
-      - ./data:/data
 
   spark-worker-2:
-    image: apache/spark:3.5.9
+    image: apache-spark:3.5.9
     container_name: spark-worker-2
     depends_on:
       - spark-master
@@ -78,8 +77,6 @@ services:
       spark://spark-master:7077
     ports:
       - "8082:8081"
-    volumes:
-      - ./data:/data
 
   app:
     build:
@@ -88,6 +85,8 @@ services:
     container_name: clickstream-processing-app
     hostname: clickstream-processing-app
     depends_on:
+      kafka:
+        condition: service_healthy
       spark-master:
         condition: service_started
       spark-worker-1:

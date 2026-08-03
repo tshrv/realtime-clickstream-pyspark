@@ -52,7 +52,7 @@ def main():
                 duplicate = random.choice(sent_events[-20:])
                 producer.send("clickstream-events", value=duplicate)
 
-            time.sleep(1)
+            time.sleep(2)  # Adjust the sleep time to control event generation rate
     except KeyboardInterrupt:
         print("Producer stopped.")
     finally:

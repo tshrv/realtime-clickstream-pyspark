@@ -1,7 +1,5 @@
 FROM apache/spark:3.5.9
 
-WORKDIR /app
-
 USER root
 
 ARG SPARK_KAFKA_VERSION=3.5.9
@@ -17,17 +15,4 @@ RUN curl -fsSL -o /opt/spark/jars/spark-sql-kafka-0-10_2.12-${SPARK_KAFKA_VERSIO
  && curl -fsSL -o /opt/spark/jars/commons-pool2-${COMMONS_POOL2_VERSION}.jar \
       https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/${COMMONS_POOL2_VERSION}/commons-pool2-${COMMONS_POOL2_VERSION}.jar
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
-
-# COPY .python-version .python-version
-COPY pyproject.toml pyproject.toml
-COPY uv.lock uv.lock
-# RUN uv sync
-RUN uv export --format requirements-txt --no-hashes -o requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY src src
-
 USER spark
-
-CMD /opt/spark/bin/spark-submit --master spark://spark-master:7077 --conf spark.driver.host=clickstream-processing-app src/main.py
