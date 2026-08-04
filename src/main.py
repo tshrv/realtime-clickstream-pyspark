@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 from loguru import logger
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json
+from pyspark.sql.functions import col, from_json, window
 from pyspark.sql.types import StringType, StructField, StructType, TimestampType
 
 
@@ -35,8 +35,8 @@ def process_streaming_data(spark: SparkSession):
         spark.readStream.format("kafka")
         .option("kafka.bootstrap.servers", "kafka:29092")
         .option("subscribe", "clickstream-events")
-        .option("startingOffsets", "latest")
-        .option("maxOffsetsPerTrigger", 1000)
+        .option("startingOffsets", "latest") # only reads events produced after it starts
+        .option("maxOffsetsPerTrigger", 1000) # caps how many messages enter each micro-batch
         .load()
     )
 
@@ -53,12 +53,40 @@ def process_streaming_data(spark: SparkSession):
     # The maxOffsetsPerTrigger option caps how many messages enter each micro-batch.
     # This is your primary backpressure knob for Kafka sources.
 
+    # query = (
+    #     events.writeStream.outputMode("append")
+    #     .format("console")
+    #     .option("truncate", "false")
+    #     .start()
+    # )
+    # query.awaitTermination()
+
+    # Spark needs to know how late data can arrive.
+    # Your producer sends events up to 90 seconds late,
+    # so a 2-minute watermark covers those late arrivals comfortably.
+    # Replace it with a watermark, deduplication, and windowed aggregation
+    deduplicated = events.withWatermark("timestamp", "2 minutes").dropDuplicatesWithinWatermark(["event_id"])
+    # any event arriving more than 2 minutes behind the latest observed timestamp can be dropped.
+    # Once the watermark passes a window's end,
+    # Spark knows no more data will arrive for that window and emits the final count.
+    # Without a watermark, deduplication state would grow forever.
+
+    # Windowed aggregation: count events per type per minute
+    windowed_counts = deduplicated.groupBy(
+        window(col("timestamp"), "1 minute"),
+        col("event_type"),
+    ).count()
+
+    # Write aggregated counts to console
     query = (
-        events.writeStream.outputMode("append")
+        windowed_counts.writeStream.outputMode("append")
+        # events.writeStream.outputMode("append")
+        # pyspark.errors.exceptions.captured.AnalysisException: Append output mode not supported when there are streaming aggregations on streaming DataFrames/DataSets without watermark
         .format("console")
         .option("truncate", "false")
         .start()
     )
+
     query.awaitTermination()
 
 
