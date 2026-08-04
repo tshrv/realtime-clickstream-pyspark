@@ -22,16 +22,18 @@ def main():
     sent_events = []
 
     print("Starting clickstream producer... (Ctrl+C to stop)")
-
+    idx = 0
     try:
         while True:
-            event_id = str(uuid.uuid4())
+            idx += 1
+            event_id = f"{idx}_{uuid.uuid4()}"
             now = datetime.now(tz=timezone.utc)
 
             # 10% of events are late (30-90 seconds behind)
             if random.random() < 0.10:
                 delay = random.randint(30, 90)
                 event_time = now - timedelta(seconds=delay)
+                print(f"DELAYED: {delay}s | {event_time}")
             else:
                 event_time = now
 
@@ -43,16 +45,17 @@ def main():
                 "timestamp": event_time.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                 "page": random.choice(PAGES),
             }
-
+            print(f"#{idx} EVENT: {event}")
             producer.send("clickstream-events", value=event)
             sent_events.append(event)
 
             # 5% chance to resend a previous event (duplicate)
             if sent_events and random.random() < 0.05:
                 duplicate = random.choice(sent_events[-20:])
+                print(f"DUPLICATE EVENT: {duplicate}")
                 producer.send("clickstream-events", value=duplicate)
 
-            time.sleep(2)  # Adjust the sleep time to control event generation rate
+            time.sleep(0.2)  # Adjust the sleep time to control event generation rate
     except KeyboardInterrupt:
         print("Producer stopped.")
     finally:
