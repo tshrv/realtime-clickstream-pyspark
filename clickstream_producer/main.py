@@ -33,6 +33,7 @@ def main():
             # 10% of events are late (30-90 seconds behind)
             if random.random() < 0.10:
                 delay = random.randint(30, 90)
+                event_id += f"_d{delay}s"
                 timestamp = now - timedelta(seconds=delay)
                 logger.info(f"DELAYED: {delay}s | {timestamp}")
             else:
