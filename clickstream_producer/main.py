@@ -1,5 +1,6 @@
 """
-Python producer that simulates realistic e-commerce clickstream traffic. The producer deliberately injects late-arriving events and duplicates so you can observe how Spark handles them in later steps.
+Python producer that simulates realistic e-commerce clickstream traffic.
+The producer deliberately injects late-arriving events and duplicates so you can observe how Spark handles them in later steps.
 """
 
 import json
@@ -9,6 +10,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from kafka import KafkaProducer
+from loguru import logger
 
 
 def main():
@@ -21,46 +23,47 @@ def main():
     PAGES = ["/home", "/products", "/product/1", "/product/2", "/cart", "/checkout"]
     sent_events = []
 
-    print("Starting clickstream producer... (Ctrl+C to stop)")
+    logger.info("Starting clickstream producer... (Ctrl+C to stop)")
     idx = 0
     try:
         while True:
-            idx += 1
             event_id = f"{idx}_{uuid.uuid4()}"
             now = datetime.now(tz=timezone.utc)
 
             # 10% of events are late (30-90 seconds behind)
             if random.random() < 0.10:
                 delay = random.randint(30, 90)
-                event_time = now - timedelta(seconds=delay)
-                print(f"DELAYED: {delay}s | {event_time}")
+                timestamp = now - timedelta(seconds=delay)
+                logger.info(f"DELAYED: {delay}s | {timestamp}")
             else:
-                event_time = now
-
+                timestamp = now
 
             event = {
                 "event_id": event_id,
                 "user_id": f"user_{random.randint(1, 50)}",
                 "event_type": random.choice(EVENT_TYPES),
-                "timestamp": event_time.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                "timestamp": timestamp.isoformat(),
                 "page": random.choice(PAGES),
             }
-            print(f"#{idx} EVENT: {event}")
-            producer.send("clickstream-events", value=event)
+            logger.info(f"#{idx} EVENT: {event}")
+            producer.send("clickstream_events", value=event)
             sent_events.append(event)
 
             # 5% chance to resend a previous event (duplicate)
             if sent_events and random.random() < 0.05:
                 duplicate = random.choice(sent_events[-20:])
-                print(f"DUPLICATE EVENT: {duplicate}")
-                producer.send("clickstream-events", value=duplicate)
+                logger.info(f"DUPLICATE EVENT: {duplicate}")
+                producer.send("clickstream_events", value=duplicate)
 
-            time.sleep(0.2)  # Adjust the sleep time to control event generation rate
+            idx += 1
+            time.sleep(0.1)  # Adjust the sleep time to control event generation rate 
+
     except KeyboardInterrupt:
-        print("Producer stopped.")
+        logger.info("Stopping clickstream producer...")
     finally:
         producer.flush()
         producer.close()
+        logger.info("Producer stopped")
 
 
 if __name__ == '__main__':

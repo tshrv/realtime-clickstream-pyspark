@@ -78,12 +78,12 @@ services:
     ports:
       - "8082:8081"
 
-  app:
+  clickstream_processor:
     build:
       context: .
       dockerfile: app.Dockerfile
-    container_name: clickstream-processing-app
-    hostname: clickstream-processing-app
+    container_name: clickstream_processor
+    hostname: clickstream_processor
     depends_on:
       kafka:
         condition: service_healthy
