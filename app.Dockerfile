@@ -30,4 +30,4 @@ COPY src src
 
 USER spark
 
-CMD /opt/spark/bin/spark-submit --master spark://spark-master:7077 --conf spark.driver.host=clickstream-processing-app src/main.py
+CMD ["/opt/spark/bin/spark-submit", "--master", "spark://spark-master:7077", "--conf", "spark.driver.host=clickstream-processor", "--conf", "spark.driver.bindAddress=0.0.0.0", "src/main.py"]
