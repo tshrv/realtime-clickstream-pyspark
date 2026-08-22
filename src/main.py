@@ -34,7 +34,7 @@ def process_streaming_data(spark: SparkSession):
     raw_stream = (
         spark.readStream.format("kafka")
         .option("kafka.bootstrap.servers", "kafka:29092")
-        .option("subscribe", "clickstream-events")
+        .option("subscribe", "clickstream_events")
         .option("startingOffsets", "latest") # only reads events produced after it starts
         .option("maxOffsetsPerTrigger", 1000) # caps how many messages enter each micro-batch
         .load()
@@ -95,8 +95,9 @@ def main():
     with get_spark_session() as spark:
         logger.info("Spark session created successfully.")
         # Add your Spark processing logic here
-        logger.info("Start processing")
+        logger.info("Processing started")
         process_streaming_data(spark)
+        logger.info("Processing stopped")
 
 
 if __name__ == "__main__":
