@@ -94,7 +94,7 @@ services:
   clickstream-processor:
     build:
       context: .
-      dockerfile: app.Dockerfile
+      dockerfile: clickstream.Dockerfile
     container_name: clickstream-processor
     hostname: clickstream-processor
     volumes:
@@ -128,7 +128,7 @@ services:
   clickstream-enrichment:
     build:
       context: .
-      dockerfile: app.Dockerfile
+      dockerfile: clickstream.Dockerfile
     container_name: clickstream-enrichment
     hostname: clickstream-enrichment
     volumes:
