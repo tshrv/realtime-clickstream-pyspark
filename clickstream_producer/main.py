@@ -41,7 +41,7 @@ def main():
 
             event = {
                 "event_id": event_id,
-                "user_id": f"user_{random.randint(1, 50)}",
+                "user_id": f"user_{random.randint(1, 8)}",
                 "event_type": random.choice(EVENT_TYPES),
                 "timestamp": timestamp.isoformat(),
                 "page": random.choice(PAGES),

@@ -69,6 +69,8 @@ services:
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.worker.Worker
       spark://spark-master:7077
+      --cores 2
+      --memory 1G
     ports:
       - "8081:8081"
 
@@ -84,6 +86,8 @@ services:
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.worker.Worker
       spark://spark-master:7077
+      --cores 2
+      --memory 1G
     ports:
       - "8082:8081"
 
@@ -96,13 +100,61 @@ services:
     volumes:
     - ./spark-checkpoints:/checkpoints
     - ./data-lake:/data-lake
-    depends_on:
-      kafka:
-        condition: service_healthy
-      spark-master:
-        condition: service_started
-      spark-worker-1:
-        condition: service_started
-      spark-worker-2:
-        condition: service_started
+    # depends_on:
+    #   kafka:
+    #     condition: service_healthy
+    #   spark-master:
+    #     condition: service_started
+    #   spark-worker-1:
+    #     condition: service_started
+      # spark-worker-2:
+      #   condition: service_started
     restart: "no"
+    command:
+      - --master
+      - spark://spark-master:7077
+      - --total-executor-cores
+      - "2"
+      - --executor-cores
+      - "2"
+      - --executor-memory
+      - 1G
+      - --conf
+      - spark.driver.host=clickstream-processor
+      - --conf
+      - spark.driver.bindAddress=0.0.0.0
+      - src/main.py
+  
+  clickstream-enrichment:
+    build:
+      context: .
+      dockerfile: app.Dockerfile
+    container_name: clickstream-enrichment
+    hostname: clickstream-enrichment
+    volumes:
+    - ./spark-checkpoints:/checkpoints
+    - ./data-lake:/data-lake
+    # depends_on:
+    #   kafka:
+    #     condition: service_healthy
+    #   spark-master:
+    #     condition: service_started
+    #   spark-worker-1:
+    #     condition: service_started
+    #   spark-worker-2:
+    #     condition: service_started
+    restart: "no"
+    command:
+      - --master
+      - spark://spark-master:7077
+      - --total-executor-cores
+      - "2"
+      - --executor-cores
+      - "2"
+      - --executor-memory
+      - 1G
+      - --conf
+      - spark.driver.host=clickstream-enrichment
+      - --conf
+      - spark.driver.bindAddress=0.0.0.0
+      - enrich_clickstream/main.py

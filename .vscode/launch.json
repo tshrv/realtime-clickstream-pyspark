@@ -7,6 +7,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/clickstream_producer/main.py",
             "console": "integratedTerminal",
+        },
+        {
+            "name": "profile_producer",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/profile_producer/main.py",
+            "console": "integratedTerminal",
         }
     ]
 }
