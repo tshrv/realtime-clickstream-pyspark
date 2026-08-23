@@ -189,6 +189,17 @@ def process_streaming_data(spark: SparkSession):
     # awaitTermination() blocks the main thread so the streaming query keeps running until you press Ctrl+C.
     # You could write directly with writeStream.format("kafka") for a single Kafka sink. But foreachBatch gives you a standard batch DataFrame you can write to multiple destinations in one pass.
 
+    # availableNow - for catchup of backlog data
+    # query = (
+    #     windowed_counts.writeStream.outputMode("append")
+    #     .foreachBatch(write_to_sinks)
+    #     .option("checkpointLocation", "/checkpoints/analytics")
+    #     .trigger(availableNow=True)
+    #     # Production teams sometimes need to process a backlog of accumulated events in one shot. The availableNow trigger processes all pending data in multiple micro-batches and then automatically terminates the query.
+    #     # With trigger(availableNow=True), Spark reads all data that has arrived since the last checkpoint, processes it across possibly multiple micro-batches, and then stops the query automatically. This is the batch-catch-up pattern teams use when they spin up clusters periodically to drain backlogs.
+    #     # The availableNow trigger is designed for one-off catch-up runs. For a continuously running pipeline that processes events as they arrive, processingTime="10 seconds" keeps the query alive and fires a micro-batch every 10 seconds indefinitely.
+    #     .start()
+    # )
     print("Streaming query started. Press Ctrl+C to stop.")
     query.awaitTermination()
 
