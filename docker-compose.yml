@@ -123,7 +123,7 @@ services:
       - spark.driver.host=clickstream-processor
       - --conf
       - spark.driver.bindAddress=0.0.0.0
-      - src/main.py
+      - clickstream_processor/main.py
   
   clickstream-enrichment:
     build:
