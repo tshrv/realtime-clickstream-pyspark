@@ -132,6 +132,8 @@ def process_streaming_data(spark: SparkSession):
         .option("checkpointLocation", "/checkpoints")
         # if mounting as volume, chmod 777 so that each spark container can write to it.
         # other options is to use s3 path like s3a://mybucket/checkpoints, that requires AWS credentials in the spark config
+        # Spark stores Kafka offsets in its own checkpoint directory, not in Kafka consumer groups. The startingOffsets option is ignored after the first successful checkpoint.
+        # On restart, Spark reads the offsets and commits files to determine the last successfully processed micro-batch. It then resumes from the next offset, providing exactly-once processing semantics for the pipeline.
         .trigger(processingTime="10 seconds")
         .start()
     )
