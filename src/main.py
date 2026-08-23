@@ -1,3 +1,4 @@
+import os
 from contextlib import contextmanager
 
 from loguru import logger
@@ -33,9 +34,30 @@ def write_to_sinks(batch_df, batch_id):
     print(batch_df.show(truncate=False))
     # skip empty batches, no finalized windows yet
     if batch_df.isEmpty():
+        print(f"Batch {batch_id} is empty. Skipping.")
         return
+
     # cache the batch sp we don't recompute for each sink
     batch_df.persist()
+
+    # Idempotent check
+    tracker_path = "/data-lake/batch_tracker.txt"
+    os.makedirs("/data-lake", exist_ok=True)
+    processed_batches = set()
+    if os.path.exists(tracker_path):
+        with open(tracker_path, "r") as f:
+            processed_batches = set(int(line.strip()) for line in f if line.strip())
+
+    if batch_id in processed_batches:
+        print(f"Batch {batch_id} has already been processed. Skipping.")
+        batch_df.unpersist()
+        return
+    # tracker_path points to a local text file that logs every batch ID the function has already handled.
+    # os.makedirs("./data-lake", exist_ok=True) ensures the output directory exists before any writes happen.
+    # If the incoming batch_id already appears in the tracker file, the function exits early. This prevents duplicate writes after a restart
+    # ensure spark driver and executors have write access to the directory, can also use s3.
+
+    # sink 1: kafka
     # format windowed counts as JSON for the kafka value column
     kafka_output = batch_df.select(
         to_json(
@@ -54,6 +76,28 @@ def write_to_sinks(batch_df, batch_id):
         .option("topic", "clickstream_analytics")
         .save()
     )
+
+    # sink 2: data lake (json)
+    # Write to local JSON data lake
+    json_output = batch_df.select(
+        col("window").getField("start").alias("window_start"),
+        col("window").getField("end").alias("window_end"),
+        col("event_type"),
+        col("count"),
+    )
+    (
+        json_output.write.mode("append")
+        .partitionBy("event_type")
+        .json("/data-lake/analytics")
+    )
+
+    # Track batch ID
+    with open(tracker_path, "a") as f:
+        f.write(f"{batch_id}\n")    
+    # json_output selects the flattened window start/end, event type, and count columns for clean JSON files.
+    # .partitionBy("event_type") creates subdirectories like event_type=page_view/ so downstream batch jobs can read only the partitions they need.
+    # After both sinks succeed, the batch ID is appended to batch_tracker.txt. On any future re-delivery of that batch, the idempotent check exits early.
+
     batch_df.unpersist()
 
 
@@ -73,7 +117,8 @@ def process_streaming_data(spark: SparkSession):
         spark.readStream.format("kafka")
         .option("kafka.bootstrap.servers", "kafka:29092")
         .option("subscribe", "clickstream_events")
-        .option("startingOffsets", "latest") # only reads events produced after it starts
+        # .option("startingOffsets", "latest") # only reads events produced after it starts
+        .option("startingOffsets", "earliest") # always reads events from the beginning
         .option("maxOffsetsPerTrigger", 1000) # caps how many messages enter each micro-batch
         .load()
     )
@@ -129,7 +174,7 @@ def process_streaming_data(spark: SparkSession):
     query = (
         windowed_counts.writeStream.outputMode("append")
         .foreachBatch(write_to_sinks)
-        .option("checkpointLocation", "/checkpoints")
+        .option("checkpointLocation", "/checkpoints/analytics")
         # if mounting as volume, chmod 777 so that each spark container can write to it.
         # other options is to use s3 path like s3a://mybucket/checkpoints, that requires AWS credentials in the spark config
         # Spark stores Kafka offsets in its own checkpoint directory, not in Kafka consumer groups. The startingOffsets option is ignored after the first successful checkpoint.

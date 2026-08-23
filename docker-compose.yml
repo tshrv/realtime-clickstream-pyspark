@@ -49,6 +49,7 @@ services:
     hostname: spark-master
     volumes:
     - ./spark-checkpoints:/checkpoints
+    - ./data-lake:/data-lake
     command: >
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.master.Master
@@ -61,6 +62,7 @@ services:
     container_name: spark-worker-1
     volumes:
     - ./spark-checkpoints:/checkpoints
+    - ./data-lake:/data-lake
     depends_on:
       - spark-master
     command: >
@@ -75,6 +77,7 @@ services:
     container_name: spark-worker-2
     volumes:
     - ./spark-checkpoints:/checkpoints
+    - ./data-lake:/data-lake
     depends_on:
       - spark-master
     command: >
@@ -92,6 +95,7 @@ services:
     hostname: clickstream-processor
     volumes:
     - ./spark-checkpoints:/checkpoints
+    - ./data-lake:/data-lake
     depends_on:
       kafka:
         condition: service_healthy
