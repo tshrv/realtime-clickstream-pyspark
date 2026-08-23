@@ -47,6 +47,8 @@ services:
     image: apache-spark:3.5.9
     container_name: spark-master
     hostname: spark-master
+    volumes:
+    - ./spark-checkpoints:/checkpoints
     command: >
       /opt/spark/bin/spark-class
       org.apache.spark.deploy.master.Master
@@ -57,6 +59,8 @@ services:
   spark-worker-1:
     image: apache-spark:3.5.9
     container_name: spark-worker-1
+    volumes:
+    - ./spark-checkpoints:/checkpoints
     depends_on:
       - spark-master
     command: >
@@ -69,6 +73,8 @@ services:
   spark-worker-2:
     image: apache-spark:3.5.9
     container_name: spark-worker-2
+    volumes:
+    - ./spark-checkpoints:/checkpoints
     depends_on:
       - spark-master
     command: >
@@ -84,6 +90,8 @@ services:
       dockerfile: app.Dockerfile
     container_name: clickstream-processor
     hostname: clickstream-processor
+    volumes:
+    - ./spark-checkpoints:/checkpoints
     depends_on:
       kafka:
         condition: service_healthy
