@@ -4,21 +4,9 @@ A local, containerized streaming pipeline that uses Apache Kafka and PySpark Str
 
 This repository is a hands-on development and learning environment. Kafka and Spark run in Docker; the two Python producers run on the host and connect to Kafka through `localhost:9092`.
 
-![System design](system-design.excalidraw.png)
 
 ## Architecture
-
-```mermaid
-flowchart LR
-	A[Clickstream producer] -->|clickstream_events| K[(Kafka)]
-	P[Profile producer] -->|user_profiles| K
-	K --> S1[Analytics processor]
-	K --> S2[Enrichment processor]
-	S1 -->|clickstream_analytics| K
-	S1 --> L[(data-lake/analytics JSON)]
-	S2 -->|enriched_events| K
-	K --> U[Kafka UI]
-```
+![System design](system-design.excalidraw.png)
 
 ### Components
 
